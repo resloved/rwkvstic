@@ -1,4 +1,3 @@
-
 from rwkvstic.rwkvMaster import RWKVMaster
 from rwkvstic.agnostic.agnosticRwkv import AgnosticRWKV
 
@@ -7,6 +6,7 @@ from rwkvstic.agnostic.backends.jax import RWKVJaxOps
 
 def loadPreJax(path, tokenizer=None):
     import jax
+
     weights = jax.numpy.load(path, allow_pickle=True)
     # filter out the keys that are not .block
     weightsKeys = [x for x in weights.keys() if "blocks" in x]
@@ -18,7 +18,8 @@ def loadPreJax(path, tokenizer=None):
             n_layers = int(ww[0])
 
     ops = RWKVJaxOps(
-        embed=len(weights["blocks.0.ln2.weight"]), layers=n_layers, preJax=True)
+        embed=len(weights["blocks.0.ln2.weight"]), layers=n_layers, preJax=True
+    )
     for w in weights.keys():
         if "emb" in w:
             weights[w] = ops.stack([ops.initTensor(x) for x in weights[w]])

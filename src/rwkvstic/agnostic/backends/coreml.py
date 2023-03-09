@@ -7,9 +7,11 @@ class RWKVCoreMLOps(module):
         super().__init__(layers, embed, *args, **kwargs)
         from coremltools.converters.mil.mil import Builder as mb
         from coremltools.converters.mil.mil import Program, Function
-        func_inputs = {"x": mb.placeholder(shape=[1]),
-                       **{f"state{i}": mb.placeholder(shape=[1]) for i in range(5*layers)},
-                       }
+
+        func_inputs = {
+            "x": mb.placeholder(shape=[1]),
+            **{f"state{i}": mb.placeholder(shape=[1]) for i in range(5 * layers)},
+        }
 
         with Function(func_inputs) as ssa_fun:
 
@@ -23,7 +25,7 @@ class RWKVCoreMLOps(module):
             self.stack = lambda x: x
             self.matvec = mb.matmul
             self.prod = lambda x: mb.prod(x, axis=1)
-            self.lerp = lambda x, y, z: x*(1-z) + y*(z)
+            self.lerp = lambda x, y, z: x * (1 - z) + y * (z)
             self.minimum = lambda x, y: mb.minimum(x, y)
             self.maximum = lambda x, y: mb.maximum(x, y)
             self.module = object
@@ -35,14 +37,16 @@ class RWKVCoreMLOps(module):
             def ln(x, w, b):
                 xee2 = x - self.mean(x)
 
-                x2 = self.sqrt(self.mean(xee2*xee2) + 0.000009999999747378752)
+                x2 = self.sqrt(self.mean(xee2 * xee2) + 0.000009999999747378752)
 
-                return w*(xee2/x2) + b
+                return w * (xee2 / x2) + b
+
             self.layernorm = ln
 
             def ppm(x):
                 inp0, inp1 = ssa_fun.inputs["x"], [
-                    ssa_fun.inputs[f"state{i}"] for i in range(5*layers)]
+                    ssa_fun.inputs[f"state{i}"] for i in range(5 * layers)
+                ]
                 re = x.forward(inp0, inp1)
                 print(re)
                 ssa_fun.set_outputs([re])

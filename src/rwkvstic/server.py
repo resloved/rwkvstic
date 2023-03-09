@@ -4,12 +4,32 @@ import torch
 from sys import argv
 
 
-def fixDtype(x): return torch.float32 if x == "float32" else torch.float64 if x == "float64" else torch.bfloat16 if x == "bfloat16" else torch.float16 if x == "float16" else x
-def fixNumbers(x): return int(x) if type(x) == str and x.isnumeric() else x
+def fixDtype(x):
+    return (
+        torch.float32
+        if x == "float32"
+        else torch.float64
+        if x == "float64"
+        else torch.bfloat16
+        if x == "bfloat16"
+        else torch.float16
+        if x == "float16"
+        else x
+    )
 
 
-def fixBool(x): return True if type(x) == str and x.lower(
-) == "true" else False if type(x) == str and x.lower() == "false" else x
+def fixNumbers(x):
+    return int(x) if type(x) == str and x.isnumeric() else x
+
+
+def fixBool(x):
+    return (
+        True
+        if type(x) == str and x.lower() == "true"
+        else False
+        if type(x) == str and x.lower() == "false"
+        else x
+    )
 
 
 args = argv[2:]
@@ -41,8 +61,9 @@ def runServer():
     PORT = args.get("port", None)
 
     if PORT is None:
-        PORT = inquirer.prompt([inquirer.Text("port", message="What port do you want to use?")])[
-            "port"]
+        PORT = inquirer.prompt(
+            [inquirer.Text("port", message="What port do you want to use?")]
+        )["port"]
 
     import http.server
     import socketserver
@@ -60,7 +81,7 @@ def runServer():
             # load post body as json file
             import json
 
-            content_length = int(self.headers['Content-Length'])
+            content_length = int(self.headers["Content-Length"])
             body = self.rfile.read(content_length)
             body = json.loads(body)
             if body.get("state", None) is not None:
@@ -71,13 +92,15 @@ def runServer():
 
             if body.get("input", None) is not None:
                 body["state"] = model.loadContext(
-                    newctx=body["input"], statex=body.get("state", None))[1]
+                    newctx=body["input"], statex=body.get("state", None)
+                )[1]
                 del body["input"]
 
             print(body)
             output = model.forward(**body)
-            output["state"] = [x.cpu().float().numpy().tolist()
-                               for x in output["state"]]
+            output["state"] = [
+                x.cpu().float().numpy().tolist() for x in output["state"]
+            ]
             output["logits"] = output["logits"].cpu().float().numpy().tolist()
 
             self.send_response(200)

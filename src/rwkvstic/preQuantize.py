@@ -1,4 +1,3 @@
-
 from rwkvstic.helpers.loadWeights import loadWeights
 from rwkvstic.rwkvMaster import RWKVMaster
 import torch
@@ -13,25 +12,34 @@ torch.set_num_threads(8)
 
 def preQuantized(path=None, chunksize=32, useLogFix=True) -> RWKVMaster:
 
-    if (path == None):
+    if path == None:
         files = os.listdir()
         # filter by ending in .pth
-        files = [f for f in files if f.endswith(
-            ".pth")]
+        files = [f for f in files if f.endswith(".pth")]
 
         questions = [
-            inquirer.List('file',
-                          message="What model do you want to quantize?",
-                          choices=files,
-                          )]
+            inquirer.List(
+                "file",
+                message="What model do you want to quantize?",
+                choices=files,
+            )
+        ]
         path = inquirer.prompt(questions)["file"]
 
     mode = "pytorch-quant(gpu-8bit)"
     ops, weights = loadWeights(
-        mode, path, runtimedtype=torch.float32, chunksize=chunksize, useLogFix=useLogFix, useGPU=True, processEmb=True)
+        mode,
+        path,
+        runtimedtype=torch.float32,
+        chunksize=chunksize,
+        useLogFix=useLogFix,
+        useGPU=True,
+        processEmb=True,
+    )
 
     gc.collect()
     torch.cuda.empty_cache()
 
-    torch.save(weights, path.replace(
-        ".pth", ".logfix.pqth" if ops.useLogFix else ".pgth"))
+    torch.save(
+        weights, path.replace(".pth", ".logfix.pqth" if ops.useLogFix else ".pgth")
+    )

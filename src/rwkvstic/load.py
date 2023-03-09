@@ -1,9 +1,15 @@
-
 from rwkvstic.agnostic.agnosticRwkv import AgnosticRWKV
 from rwkvstic.agnostic.rnn import RnnRWKV
 from rwkvstic.helpers.loadWeights import loadWeights
 from rwkvstic.agnostic.backends import Backends
-from rwkvstic.interOpLoaders import tflite, torchscript, prequantized, preJax, rwkvRs, onnx
+from rwkvstic.interOpLoaders import (
+    tflite,
+    torchscript,
+    prequantized,
+    preJax,
+    rwkvRs,
+    onnx,
+)
 from rwkvstic.rwkvMaster import RWKVMaster
 import gc
 from typing import Tuple
@@ -14,22 +20,36 @@ import urllib.request
 # set torch threads to 8
 
 
-def RWKV(path=None, mode: Tuple[str, None] = None, *args, tokenizer=None, **kwargs) -> RWKVMaster:
+def RWKV(
+    path=None, mode: Tuple[str, None] = None, *args, tokenizer=None, **kwargs
+) -> RWKVMaster:
 
-    if (path == None):
+    if path == None:
         files = os.listdir()
         # filter by ending in .pth
-        files = [f for f in files if f.endswith(
-            ".pth") or f.endswith(".pt") or f.endswith(".tflite") or f.endswith(".pqth") or f.endswith(".jax.npy") or f.endswith(".safetensors") or f.endswith(".onnx") or f.endswith(".ort")]
+        files = [
+            f
+            for f in files
+            if f.endswith(".pth")
+            or f.endswith(".pt")
+            or f.endswith(".tflite")
+            or f.endswith(".pqth")
+            or f.endswith(".jax.npy")
+            or f.endswith(".safetensors")
+            or f.endswith(".onnx")
+            or f.endswith(".ort")
+        ]
 
         questions = [
-            inquirer.List('file',
-                          message="What model do you want to use?",
-                          choices=files,
-                          )]
+            inquirer.List(
+                "file",
+                message="What model do you want to use?",
+                choices=files,
+            )
+        ]
         path = inquirer.prompt(questions)["file"]
     else:
-        if ("http" in path):
+        if "http" in path:
             fileName = path.split("/")[-1]
             # if os.system("ls " + fileName):
             # os.system(f"wget {path}")
@@ -56,10 +76,15 @@ def RWKV(path=None, mode: Tuple[str, None] = None, *args, tokenizer=None, **kwar
         return onnx.initONNXFile(path, tokenizer, *args, **kwargs)
 
     if mode is None:
-        mode: str = inquirer.prompt([inquirer.List('mode',
-                                                   message="What inference backend do you want to use?",
-                                                   choices=Backends.keys(),
-                                                   )])["mode"]
+        mode: str = inquirer.prompt(
+            [
+                inquirer.List(
+                    "mode",
+                    message="What inference backend do you want to use?",
+                    choices=Backends.keys(),
+                )
+            ]
+        )["mode"]
 
     ops, weights = loadWeights(mode, path, *args, **kwargs)
 
@@ -70,7 +95,8 @@ def RWKV(path=None, mode: Tuple[str, None] = None, *args, tokenizer=None, **kwar
     emptyState = ops.emptyState
     initTensor = ops.initTensor
 
-    ret = RWKVMaster(model, emptyState, initTensor, ops.intTensor,
-                     ops.sample, tokenizer)
+    ret = RWKVMaster(
+        model, emptyState, initTensor, ops.intTensor, ops.sample, tokenizer
+    )
 
     return ret

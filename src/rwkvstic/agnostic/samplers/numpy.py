@@ -1,6 +1,3 @@
-
-
-
 def npsample(ozut, temp: float = 1.0, top_p_usual: float = 0.8) -> int:
     import numpy as np
     from scipy.special import softmax
@@ -19,8 +16,7 @@ def npsample(ozut, temp: float = 1.0, top_p_usual: float = 0.8) -> int:
 
     sorted_probs = np.sort(probs)[::-1]
     cumulative_probs = np.cumsum(sorted_probs)
-    cutoff = float(sorted_probs[np.argmax(
-        cumulative_probs > top_p_usual)])
+    cutoff = float(sorted_probs[np.argmax(cumulative_probs > top_p_usual)])
     probs[probs < cutoff] = 0
     if temp != 1.0:
         probs = pow(probs, 1.0 / temp)

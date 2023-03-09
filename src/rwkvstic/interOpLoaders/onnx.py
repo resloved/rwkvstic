@@ -1,4 +1,3 @@
-
 from rwkvstic.agnostic.samplers.numpy import npsample
 from rwkvstic.rwkvMaster import RWKVMaster
 
@@ -11,16 +10,19 @@ def initONNXFile(path, tokenizer=None, useAllAvailableProviders=True):
 
     print(rt.get_available_providers())
     import inquirer
-    providers = inquirer.checkbox(
-        "Select execution providers", choices=rt.get_available_providers()) if not useAllAvailableProviders else rt.get_available_providers()
+
+    providers = (
+        inquirer.checkbox(
+            "Select execution providers", choices=rt.get_available_providers()
+        )
+        if not useAllAvailableProviders
+        else rt.get_available_providers()
+    )
     print(providers)
 
-    sess = rt.InferenceSession(
-        path, sess_options, providers=providers)
+    sess = rt.InferenceSession(path, sess_options, providers=providers)
 
-    ins = {
-
-    }
+    ins = {}
 
     embed = int(path.split("_")[2].split(".")[0])
     layers = int(path.split("_")[1])
@@ -35,7 +37,7 @@ def initONNXFile(path, tokenizer=None, useAllAvailableProviders=True):
     elif typenum == "tensor(bfloat16)":
         typenum = np.bfloat16
 
-    class InterOp():
+    class InterOp:
 
         RnnOnly = True
 
@@ -53,19 +55,25 @@ def initONNXFile(path, tokenizer=None, useAllAvailableProviders=True):
 
             # create input dict
             inputs[input_names[0]] = np.array([xi[-1]], dtype=np.int32)
-            for i in range(len(input_names)-1):
-                inputs[input_names[i+1]] = statei[i]
+            for i in range(len(input_names) - 1):
+                inputs[input_names[i + 1]] = statei[i]
 
             outputs = sess.run(output_names, inputs)
             # print(outputs[1][23])
 
             return outputs[0], outputs[1:]
+
     model = InterOp()
 
     # emptyState = []
-    emptyState = [
-        np.array([0.01]*int(embed)).astype(typenum)]*len(sess.get_inputs()[1:])
+    emptyState = [np.array([0.01] * int(embed)).astype(typenum)] * len(
+        sess.get_inputs()[1:]
+    )
 
-    def initTensor(x): return np.array(x, dtype=typenum)
-    def intTensor(x): return [x] if type(x) == int else x
+    def initTensor(x):
+        return np.array(x, dtype=typenum)
+
+    def intTensor(x):
+        return [x] if type(x) == int else x
+
     return RWKVMaster(model, emptyState, initTensor, intTensor, npsample, tokenizer)

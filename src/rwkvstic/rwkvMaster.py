@@ -1,4 +1,3 @@
-
 import tqdm
 import rwkvstic.tokenizer as tokenizer
 from typing import List
@@ -19,27 +18,33 @@ def loadContext(model, ctx, newctx, statex, progressCallBack=lambda x: x):
         o = model.forward(m, o[1])
         progressCallBack(m)
 
-    print("loaded context in", time.time()-tt, "seconds")
+    print("loaded context in", time.time() - tt, "seconds")
     print(o[0][0])
     return nnewctx, o[1]
 
 
 def rnnloadContext(model, ctx, newctx, statex, progressCallBack=lambda x: x):
 
-    
     for i in tqdm.tqdm(range(len(newctx))):
 
-        x = ctx+newctx[:i]
+        x = ctx + newctx[:i]
 
         o = model.forward([x[-1]], statex)
         statex = o[1]
         progressCallBack(x)
-    return ctx+newctx, o[1]
+    return ctx + newctx, o[1]
 
 
-class RWKVMaster():
-    
-    def __init__(self, model, emptyState, initTensor=lambda x: x, intTensor=lambda x: x, sampler=None, tokPath=None):
+class RWKVMaster:
+    def __init__(
+        self,
+        model,
+        emptyState,
+        initTensor=lambda x: x,
+        intTensor=lambda x: x,
+        sampler=None,
+        tokPath=None,
+    ):
         self.model = model
 
         self.tokenizer = tokenizer.tokenizer(tokPath)
@@ -51,19 +56,31 @@ class RWKVMaster():
         self.intTensor = intTensor
         self.sampler = sampler
 
-    def forward(self, state=None, temp: float = 1.0, top_p_usual: float = 0.8, number=1, stopStrings: List[str] = ["<|endoftext|>"], stopTokens: List[int] = [0], progressLambda=lambda args: args, end_adj=0.0):
+    def forward(
+        self,
+        state=None,
+        temp: float = 1.0,
+        top_p_usual: float = 0.8,
+        number=1,
+        stopStrings: List[str] = ["<|endoftext|>"],
+        stopTokens: List[int] = [0],
+        progressLambda=lambda args: args,
+        end_adj=0.0,
+    ):
         ostate = self.myState if state is None else state
         tolens = []
         for i in range(number):
-            logits, ostate = self.model.forward(
-                self.intTensor(self.lastToken), ostate)
+            logits, ostate = self.model.forward(self.intTensor(self.lastToken), ostate)
             try:
-                logits[0] += (end_adj)
+                logits[0] += end_adj
             except:
                 pass
             self.myState = ostate
-            sampled = self.sample(
-                logits, temp, top_p_usual) if self.sampler is not None else logits
+            sampled = (
+                self.sample(logits, temp, top_p_usual)
+                if self.sampler is not None
+                else logits
+            )
             try:
                 self.lastToken = [sampled.cpu().numpy()[0]]
             except:
@@ -72,7 +89,16 @@ class RWKVMaster():
             tolens += [self.lastToken[0]]
             sampled = self.tokenizer.decode(tolens)
             progressLambda(
-                {"logits": logits, "state": ostate, "output": sampled, "progress": i, "tokens": tolens, "total": number, "current": self.tokenizer.decode([tolens[-1]])})
+                {
+                    "logits": logits,
+                    "state": ostate,
+                    "output": sampled,
+                    "progress": i,
+                    "tokens": tolens,
+                    "total": number,
+                    "current": self.tokenizer.decode([tolens[-1]]),
+                }
+            )
             if tolens[-1] in stopTokens:
                 break
             if sampled.endswith((*stopStrings,)):
@@ -80,17 +106,25 @@ class RWKVMaster():
 
         return {"logits": logits, "state": ostate, "output": sampled}
 
-    def loadContext(self, newctx: str = "", ctx: str = "\n\n", statex=None, progressCallBack=lambda x: x):
+    def loadContext(
+        self,
+        newctx: str = "",
+        ctx: str = "\n\n",
+        statex=None,
+        progressCallBack=lambda x: x,
+    ):
         statex = self.myState if statex is None else statex
         print(newctx)
         ctx = self.tokenizer.encode(ctx)
         newctx = self.tokenizer.encode(newctx)
         if self.model.RnnOnly:
             ctx, state = rnnloadContext(
-                self.model, ctx, self.intTensor(newctx), statex, progressCallBack)
+                self.model, ctx, self.intTensor(newctx), statex, progressCallBack
+            )
         else:
             ctx, state = loadContext(
-                self.model, ctx, self.intTensor(newctx), statex, progressCallBack)
+                self.model, ctx, self.intTensor(newctx), statex, progressCallBack
+            )
         self.lastToken = ctx[-1]
         self.myState = state
         return ctx, state
